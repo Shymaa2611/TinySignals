@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,12 +9,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner:false ,
-      home:Homepage()
+      debugShowCheckedModeBanner: false,
+      home: Homepage(),
     );
   }
 }
@@ -25,10 +26,7 @@ class Homepage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Logo Setion
-          SizedBox(
-            height:100 ,
-          ),
+          SizedBox(height: 100),
           Container(
             width: 200,
             height: 55,
@@ -46,12 +44,11 @@ class Homepage extends StatelessWidget {
                   decoration: BoxDecoration(
                     image: const DecorationImage(
                       image: AssetImage("images/logo.png"),
-                       fit: BoxFit.cover
-                      
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                SizedBox(width:2),
+                SizedBox(width: 2),
                 Text(
                   "TinySignals",
                   style: TextStyle(
@@ -72,18 +69,17 @@ class Homepage extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               image: const DecorationImage(
                 image: AssetImage("images/splash.png"),
-                //fit: BoxFit.cover,
               ),
-             
             ),
           ),
           SizedBox(height: 20),
           Container(
-            child:Text("  Understand Why Your Baby Is Craying",
-            style:TextStyle(fontSize:20,fontWeight:FontWeight.bold  ) ,) ,),
-          // Description Text
-      SizedBox(height: 30),
-          // Start Button
+            child: Text(
+              "Understand Why Your Baby Is Crying",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: 30),
           Container(
             width: 220,
             height: 55,
@@ -104,9 +100,9 @@ class Homepage extends StatelessWidget {
                 ),
               ),
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-                  return DetectionPage();
-                }));
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => DetectionPage(),
+                ));
               },
               child: Text(
                 "Start",
@@ -124,7 +120,50 @@ class Homepage extends StatelessWidget {
   }
 }
 
-class DetectionPage extends StatelessWidget {
+class DetectionPage extends StatefulWidget {
+  @override
+  _DetectionPageState createState() => _DetectionPageState();
+}
+
+class _DetectionPageState extends State<DetectionPage> {
+  FlutterSoundRecorder? _audioRecorder;
+  bool _isRecording = false;
+  String _statusMessage = ""; 
+
+  @override
+  void initState() {
+    super.initState();
+    _audioRecorder = FlutterSoundRecorder();
+    _initRecorder();
+  }
+
+  Future<void> _initRecorder() async {
+    await Permission.microphone.request();
+    await _audioRecorder!.openRecorder();
+  }
+
+  Future<void> _startRecording() async {
+    await _audioRecorder!.startRecorder(toFile: 'audio_record.aac');
+    setState(() {
+      _isRecording = true;
+      _statusMessage = "Recording..."; 
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    await _audioRecorder!.stopRecorder();
+    setState(() {
+      _isRecording = false;
+      _statusMessage = "Baby is Hungry";
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioRecorder!.closeRecorder();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,9 +184,9 @@ class DetectionPage extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height:20),
+            SizedBox(height: 20),
             Text(
-              "Baby is Hungry",
+              _statusMessage, 
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -169,36 +208,36 @@ class DetectionPage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.play_arrow, size: 30, color: Colors.pinkAccent),
-                        onPressed: () {
-                          print("Play button pressed");
-                        },
-                      ),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: 0.5,
-                          backgroundColor: Colors.pink[100],
-                          color: Colors.pinkAccent,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        "5:00",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.pinkAccent,
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    icon: Icon(
+                      _isRecording ? Icons.stop : Icons.mic,
+                      size: 30,
+                      color: Colors.pinkAccent,
+                    ),
+                    onPressed: () async {
+                      if (_isRecording) {
+                        await _stopRecording();
+                      } else {
+                        await _startRecording();
+                      }
+                    },
+                  ),
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: _isRecording ? null : 0,
+                      backgroundColor: Colors.pink[100],
+                      color: Colors.pinkAccent,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    _isRecording ? "Recording..." : "Ready",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.pinkAccent,
+                    ),
                   ),
                 ],
               ),
@@ -214,11 +253,15 @@ class DetectionPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                   ),
                 ),
-                onPressed: () {
-                
+                onPressed: () async {
+                  if (_isRecording) {
+                    await _stopRecording();
+                  } else {
+                    await _startRecording();
+                  }
                 },
                 child: Text(
-                  "Start Listening ...",
+                  _isRecording ? "Stop Listening" : "Start Listening...",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 25,
@@ -232,4 +275,3 @@ class DetectionPage extends StatelessWidget {
     );
   }
 }
-
